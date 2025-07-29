@@ -1,24 +1,26 @@
+// src/app/register/page.tsx - REEMPLAZA COMPLETAMENTE
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import authService from '@/services/authService'
+import { AlertCircle, Eye, EyeOff, Utensils } from 'lucide-react'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'empleado'
+    nombreCompleto: '',
+    correo: '',
+    contrasena: '',
+    confirmPassword: ''
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const { login } = useAuth()
   const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -31,66 +33,66 @@ export default function RegisterPage() {
     setError('')
 
     // Validaciones
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.contrasena !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden')
       setIsLoading(false)
       return
     }
 
-    if (formData.password.length < 6) {
+    if (formData.contrasena.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres')
       setIsLoading(false)
       return
     }
 
     try {
-      // Simulación de registro - aquí conectarías con tu API
-      // Por ahora simulo que el registro es exitoso
-      const newUser = {
-        id: Date.now().toString(),
-        email: formData.email,
-        name: formData.name,
-        role: formData.role
-      }
+      const result = await authService.register({
+        nombreCompleto: formData.nombreCompleto,
+        correo: formData.correo,
+        contrasena: formData.contrasena
+      })
 
-      await login(newUser)
-      router.push('/')
+      if (result.success) {
+        router.push('/login?message=Cuenta creada exitosamente')
+      } else {
+        setError(result.error || 'Error al crear la cuenta')
+      }
     } catch (err) {
-      setError('Error al crear la cuenta')
+      setError('Error de conexión. Intenta nuevamente.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">V</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4">
+            <Utensils className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Vento</h1>
-          <p className="text-gray-400">Crear Nueva Cuenta</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Vento</h1>
+          <p className="text-gray-600">Crear Nueva Cuenta</p>
         </div>
 
         {/* Formulario de registro */}
-        <div className="bg-gray-900 rounded-xl p-8 border border-gray-800">
-          <h2 className="text-xl font-semibold text-white mb-6 text-center">Registrarse</h2>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Registrarse</h2>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Nombre */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                Nombre Completo
+              <label htmlFor="nombreCompleto" className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre Completo *
               </label>
               <input
-                id="name"
-                name="name"
+                id="nombreCompleto"
+                name="nombreCompleto"
                 type="text"
-                value={formData.name}
+                value={formData.nombreCompleto}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
                 placeholder="Tu nombre completo"
                 required
               />
@@ -98,77 +100,86 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Correo Electrónico
+              <label htmlFor="correo" className="block text-sm font-medium text-gray-700 mb-2">
+                Correo Electrónico *
               </label>
               <input
-                id="email"
-                name="email"
+                id="correo"
+                name="correo"
                 type="email"
-                value={formData.email}
+                value={formData.correo}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                placeholder="tu@email.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                placeholder="tu@correo.com"
                 required
               />
-            </div>
-
-            {/* Rol */}
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-2">
-                Rol
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-              >
-                <option value="empleado">Empleado</option>
-                <option value="admin">Administrador</option>
-                <option value="cajero">Cajero</option>
-              </select>
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Contraseña
+              <label htmlFor="contrasena" className="block text-sm font-medium text-gray-700 mb-2">
+                Contraseña *
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="contrasena"
+                  name="contrasena"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.contrasena}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 px-3 flex items-center"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirmar Contraseña
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmar Contraseña *
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 px-3 flex items-center"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Error message */}
             {error && (
-              <div className="bg-red-900/50 border border-red-700 rounded-lg p-3">
-                <p className="text-red-300 text-sm">{error}</p>
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
 
@@ -176,7 +187,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
             >
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </button>
@@ -184,9 +195,9 @@ export default function RegisterPage() {
 
           {/* Link to login */}
           <div className="mt-6 text-center">
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-600 text-sm">
               ¿Ya tienes una cuenta?{' '}
-              <Link href="/login" className="text-orange-500 hover:text-orange-400 font-medium">
+              <Link href="/login" className="text-orange-500 hover:text-orange-600 font-medium">
                 Iniciar Sesión
               </Link>
             </p>

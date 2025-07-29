@@ -1,159 +1,96 @@
 'use client'
 
 import { useState } from 'react'
-import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { usePedidos } from '@/hooks/usePedidos'
+import { useMenu } from '@/hooks/useMenu'
+import { MagnifyingGlassIcon, PlusIcon, EyeIcon } from '@heroicons/react/24/outline'
 import NewOrderModal from '@/components/NewOrderModal'
 import OrderDetailsModal from '@/components/OrderDetailsModal'
-import OrdersTable from '@/components/OrdersTable'
-// npm install @heroicons/react
-
-interface OrderItem {
-  id: string
-  name: string
-  quantity: number
-  price: number
-  notes?: string
-}
-
-interface Order {
-  id: string
-  orderNumber: string
-  customer: string
-  time: string
-  status: 'pending' | 'completed' | 'cancelled'
-  total: number
-  items: OrderItem[]
-}
-
-interface Product {
-  id: string
-  name: string
-  price: number
-  category: string
-}
-
-const mockProducts: Product[] = [
-  { id: '1', name: 'Hamburguesa Clásica', price: 12.00, category: 'Hamburguesas' },
-  { id: '2', name: 'Hamburguesa Premium', price: 18.00, category: 'Hamburguesas' },
-  { id: '3', name: 'Hot Dog Especial', price: 8.50, category: 'Hot Dogs' },
-  { id: '4', name: 'Hot Dog Simple', price: 6.00, category: 'Hot Dogs' },
-  { id: '5', name: 'Papas Fritas', price: 4.50, category: 'Acompañamientos' },
-  { id: '6', name: 'Papas con Queso', price: 6.50, category: 'Acompañamientos' },
-  { id: '7', name: 'Aros de Cebolla', price: 5.25, category: 'Acompañamientos' },
-  { id: '8', name: 'Coca Cola', price: 3.00, category: 'Bebidas' },
-  { id: '9', name: 'Sprite', price: 3.00, category: 'Bebidas' },
-  { id: '10', name: 'Agua', price: 1.25, category: 'Bebidas' },
-  { id: '11', name: 'Malteada de Vainilla', price: 7.50, category: 'Bebidas' }
-]
-
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    orderNumber: '#12345',
-    customer: 'Sofía Rodríguez',
-    time: '10:15 AM',
-    status: 'pending',
-    total: 25.50,
-    items: [
-      { id: '1', name: 'Hamburguesa Clásica', quantity: 2, price: 12.00 },
-      { id: '2', name: 'Papas Fritas', quantity: 1, price: 4.50 },
-      { id: '3', name: 'Coca Cola', quantity: 1, price: 3.00, notes: 'Sin hielo' }
-    ]
-  },
-  {
-    id: '2',
-    orderNumber: '#12346',
-    customer: 'Carlos López',
-    time: '10:20 AM',
-    status: 'pending',
-    total: 18.75,
-    items: [
-      { id: '1', name: 'Hot Dog Especial', quantity: 1, price: 8.50 },
-      { id: '2', name: 'Aros de Cebolla', quantity: 1, price: 5.25 },
-      { id: '3', name: 'Sprite', quantity: 1, price: 3.00 }
-    ]
-  },
-  {
-    id: '3',
-    orderNumber: '#12347',
-    customer: 'Ana García',
-    time: '10:25 AM',
-    status: 'completed',
-    total: 32.00,
-    items: [
-      { id: '1', name: 'Hamburguesa Premium', quantity: 1, price: 18.00 },
-      { id: '2', name: 'Papas con Queso', quantity: 1, price: 6.50 },
-      { id: '3', name: 'Malteada de Vainilla', quantity: 1, price: 7.50 }
-    ]
-  },
-  {
-    id: '4',
-    orderNumber: '#12348',
-    customer: 'Javier Martínez',
-    time: '10:30 AM',
-    status: 'pending',
-    total: 15.25,
-    items: [
-      { id: '1', name: 'Hot Dog Simple', quantity: 2, price: 6.00 },
-      { id: '2', name: 'Agua', quantity: 1, price: 1.25 }
-    ]
-  },
-  {
-    id: '5',
-    orderNumber: '#12349',
-    customer: 'Laura Pérez',
-    time: '10:35 AM',
-    status: 'pending',
-    total: 28.50,
-    items: [
-      { id: '1', name: 'Combo Familiar', quantity: 1, price: 28.50, notes: 'Extra salsa' }
-    ]
-  }
-]
+import { Pedido } from '@/services/pedidosService'
 
 export default function PedidosPage() {
+  const { pedidos, isLoading: pedidosLoading, error: pedidosError, createPedido, updatePedido } = usePedidos()
+  const { platillos, isLoading: platillosLoading } = useMenu()
+  
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<'todos' | 'pendientes' | 'completados'>('todos')
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [activeTab, setActiveTab] = useState<'todos' | 'pendiente' | 'confirmado' | 'entregado'>('todos')
+  const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false)
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesTab = activeTab === 'todos' || 
-                      (activeTab === 'pendientes' && order.status === 'pending') ||
-                      (activeTab === 'completados' && order.status === 'completed')
+  const filteredPedidos = pedidos.filter(pedido => {
+    const matchesSearch = pedido.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (pedido.notas && pedido.notas.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesTab = activeTab === 'todos' || pedido.estado === activeTab
     return matchesSearch && matchesTab
   })
 
-  const handleViewOrder = (order: Order) => {
-    setSelectedOrder(order)
+  const handleViewOrder = (pedido: Pedido) => {
+    setSelectedOrder(pedido)
     setIsDetailsModalOpen(true)
   }
 
-  const handleStatusChange = (orderId: string, newStatus: 'pending' | 'completed' | 'cancelled') => {
-    console.log(`Cambiar estado del pedido ${orderId} a ${newStatus}`)
-    setIsDetailsModalOpen(false)
-    setSelectedOrder(null)
+  const handleStatusChange = async (pedidoId: string, newStatus: string) => {
+    const result = await updatePedido(pedidoId, { estado: newStatus as any })
+    if (result.success) {
+      setIsDetailsModalOpen(false)
+      setSelectedOrder(null)
+      console.log('✅ Estado del pedido actualizado')
+    } else {
+      alert(result.error || 'Error al actualizar pedido')
+    }
   }
 
-  const handleNewOrder = (customerName: string, items: OrderItem[]) => {
-    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    
-    const newOrder: Order = {
-      id: Date.now().toString(),
-      orderNumber: `#${12350 + mockOrders.length}`,
-      customer: customerName,
-      time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      status: 'pending',
-      total,
-      items
-    }
+  const handleNewOrder = async (customerName: string, items: any[]) => {
+    const detalles = items.map(item => ({
+      platilloId: item.id,
+      cantidad: item.quantity,
+      notasEspeciales: item.notes
+    }))
 
-    console.log('Nuevo pedido creado:', newOrder)
-    setIsNewOrderModalOpen(false)
-    alert('Pedido creado exitosamente!')
+    const result = await createPedido({
+      notas: `Cliente: ${customerName}`,
+      detalles
+    })
+
+    if (result.success) {
+      setIsNewOrderModalOpen(false)
+      console.log('✅ Pedido creado exitosamente')
+    } else {
+      alert(result.error || 'Error al crear pedido')
+    }
+  }
+
+  if (pedidosLoading || platillosLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando pedidos...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (pedidosError) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <p className="text-red-400 mb-4">{pedidosError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -166,7 +103,7 @@ export default function PedidosPage() {
         </div>
         <button 
           onClick={() => setIsNewOrderModalOpen(true)}
-          className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl border border-gray-700 flex items-center gap-2 transition-colors"
+          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
         >
           <PlusIcon className="h-5 w-5" />
           Nuevo Pedido
@@ -179,11 +116,37 @@ export default function PedidosPage() {
           <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar pedidos..."
+            placeholder="Buscar pedidos por ID o notas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
+            className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium">Total Pedidos</h3>
+          <p className="text-2xl font-bold text-white">{pedidos.length}</p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium">Pendientes</h3>
+          <p className="text-2xl font-bold text-yellow-400">
+            {pedidos.filter(p => p.estado === 'pendiente').length}
+          </p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium">Confirmados</h3>
+          <p className="text-2xl font-bold text-blue-400">
+            {pedidos.filter(p => p.estado === 'confirmado').length}
+          </p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium">Entregados</h3>
+          <p className="text-2xl font-bold text-green-400">
+            {pedidos.filter(p => p.estado === 'entregado').length}
+          </p>
         </div>
       </div>
 
@@ -192,15 +155,16 @@ export default function PedidosPage() {
         <div className="flex space-x-1 bg-gray-900 p-1 rounded-xl border border-gray-800">
           {[
             { key: 'todos', label: 'Todos' },
-            { key: 'pendientes', label: 'Pendientes' },
-            { key: 'completados', label: 'Completados' }
+            { key: 'pendiente', label: 'Pendientes' },
+            { key: 'confirmado', label: 'Confirmados' },
+            { key: 'entregado', label: 'Entregados' }
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-gray-200 text-black'
+                  ? 'bg-orange-500 text-white'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -211,19 +175,128 @@ export default function PedidosPage() {
       </div>
 
       {/* Orders Table */}
-      <OrdersTable orders={filteredOrders} onViewOrder={handleViewOrder} />
+      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  ID Pedido
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  Estado
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  Fecha
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  Items
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  Total
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {filteredPedidos.length > 0 ? (
+                filteredPedidos.map((pedido) => (
+                  <tr key={pedido.id} className="hover:bg-gray-800 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                      #{pedido.id.slice(-6)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        pedido.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                        pedido.estado === 'confirmado' ? 'bg-blue-100 text-blue-800' :
+                        pedido.estado === 'entregado' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {pedido.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {new Date(pedido.createdAt).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {pedido.detalles.length} items
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      ${pedido.detalles.reduce((sum, item) => 
+                        sum + (item.platillo.precio * item.cantidad), 0
+                      ).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <button
+                        onClick={() => handleViewOrder(pedido)}
+                        className="text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="text-gray-400">
+                      <div className="text-4xl mb-2">📋</div>
+                      <p className="mb-4">No se encontraron pedidos</p>
+                      <button 
+                        onClick={() => setIsNewOrderModalOpen(true)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        Crear primer pedido
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Modals */}
       <NewOrderModal
         isOpen={isNewOrderModalOpen}
         onClose={() => setIsNewOrderModalOpen(false)}
-        products={mockProducts}
+        products={platillos.map(p => ({
+          id: p.id,
+          name: p.nombre,
+          price: p.precio,
+          category: p.categoria
+        }))}
         onConfirm={handleNewOrder}
       />
 
       <OrderDetailsModal
         isOpen={isDetailsModalOpen}
-        order={selectedOrder}
+        order={selectedOrder ? {
+          id: selectedOrder.id,
+          orderNumber: `#${selectedOrder.id.slice(-6)}`,
+          customer: selectedOrder.notas?.includes('Cliente:') ? 
+            selectedOrder.notas.split('Cliente:')[1].trim() : 'Cliente',
+          time: new Date(selectedOrder.createdAt).toLocaleTimeString(),
+          status: selectedOrder.estado as any,
+          total: selectedOrder.detalles.reduce((sum, item) => 
+            sum + (item.platillo.precio * item.cantidad), 0),
+          items: selectedOrder.detalles.map(item => ({
+            id: item.id,
+            name: item.platillo.nombre,
+            quantity: item.cantidad,
+            price: item.platillo.precio,
+            notes: item.notasEspeciales
+          }))
+        } : null}
         onClose={() => {
           setIsDetailsModalOpen(false)
           setSelectedOrder(null)

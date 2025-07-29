@@ -1,11 +1,10 @@
+// src/app/login/page.tsx - REEMPLAZA COMPLETAMENTE
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, Utensils, AlertCircle } from 'lucide-react'
-import food from '@/assets/images/food.jpg'
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -26,50 +25,34 @@ export default function LoginPage() {
       if (success) {
         router.push('/')
       } else {
-        setError('Credenciales incorrectas')
+        setError('Credenciales incorrectas. Verifica tu email y contraseña.')
       }
-    } catch {
-      setError('Error al iniciar sesión')
+    } catch (error) {
+      setError('Error de conexión. Intenta nuevamente.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const demoUsers = [
-    { role: 'Gerente', email: 'admin@quickbite.com', pass: 'admin123' },
-    { role: 'Cajero',  email: 'cajero@quickbite.com', pass: 'cajero123' },
-    { role: 'Mesero',  email: 'mesero@quickbite.com', pass: 'mesero123' },
-  ]
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex">
+      {/* Imagen de fondo */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-500"></div>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8">
+          <h2 className="text-4xl xl:text-5xl font-bold text-white mb-4">
+            ¡Bienvenido de vuelta!
+          </h2>
+          <p className="text-xl xl:text-2xl text-white opacity-90">
+            Gestiona tu restaurante con facilidad
+          </p>
+        </div>
+      </div>
 
-     <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
-  
-  <img
-    src={food.src}
-    alt="Comida rápida"
-    className="absolute inset-0 w-full h-full object-cover"
-  />
-
-
-  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20 z-10" />
-
-
-  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8">
-    <h2 className="text-4xl xl:text-5xl font-bold text-white mb-4">
-      ¡Bienvenido de vuelta!
-    </h2>
-    <p className="text-xl xl:text-2xl text-white opacity-90">
-      Gestiona tu restaurante con facilidad
-    </p>
-  </div>
-</div>
-
-
+      {/* Formulario */}
       <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-4 lg:p-8">
         <div className="w-full max-w-md">
-      
+          {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4">
               <Utensils className="w-8 h-8 text-white" />
@@ -78,17 +61,15 @@ export default function LoginPage() {
             <p className="text-base text-gray-600 mt-2">Sistema de gestión de restaurante</p>
           </div>
 
-        
+          {/* Card de login */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-     
             <div className="px-8 pt-8 pb-4 text-center">
               <h2 className="text-2xl font-bold text-neutral-900">Iniciar Sesión</h2>
               <p className="text-sm text-gray-500 mt-1">Accede a tu panel de administración</p>
             </div>
 
-        
             <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-6">
-        
+              {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Correo electrónico
@@ -96,15 +77,15 @@ export default function LoginPage() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="tu@quickbite.com"
+                  placeholder="tu@correo.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full h-11 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ringf-2 focus:ring-orange-400 text-black"
+                  className="w-full h-11 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-black"
                 />
               </div>
 
-            
+              {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Contraseña
@@ -145,7 +126,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full h-11 rounded-lg text-white font-semibold ${
+                className={`w-full h-11 rounded-lg text-white font-semibold transition-colors ${
                   isLoading
                     ? 'bg-orange-300 cursor-not-allowed'
                     : 'bg-orange-500 hover:bg-orange-600'
@@ -154,32 +135,21 @@ export default function LoginPage() {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
 
-              {/* Separator */}
-              <div className="relative my-6">
-                <hr className="border-gray-300" />
-                <span className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 bg-white px-2 text-xs uppercase text-gray-500">
-                  Usuarios de prueba
-                </span>
-              </div>
-
-              {/* Demo users */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
-                {demoUsers.map(({ role, email, pass }) => (
-                  <div key={role} className="flex justify-between items-center">
-                    <div>
-                      <p className="text-xs text-orange-600 font-medium">{role}:</p>
-                      <p className="text-xs text-gray-700">{email}</p>
-                    </div>
-                    <p className="text-xs text-gray-500">{pass}</p>
-                  </div>
-                ))}
+              {/* Link a registro */}
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
+                  ¿No tienes cuenta?{' '}
+                  <a href="/register" className="text-orange-500 hover:text-orange-600 font-medium">
+                    Crear cuenta
+                  </a>
+                </p>
               </div>
             </form>
           </div>
 
           {/* Footer */}
           <p className="text-center text-sm text-gray-500 mt-8">
-            © 2024 QuickBite POS. Todos los derechos reservados.
+            © 2024 Vento POS. Todos los derechos reservados.
           </p>
         </div>
       </div>
